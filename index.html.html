@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mundell-Fleming Arena</title>
+<style>
+:root{
+  --bg:#0d1424; --panel:#151f36; --panel2:#1b2845; --line:#2a3a5f; --txt:#e8edf8; --mut:#93a1c2;
+  --is:#4da3ff; --lm:#ffa94d; --bp:#4ade80; --bad:#ff6b6b; --good:#4ade80; --gold:#ffd166; --acc:#a78bfa;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:14px 20px 0;max-width:1280px;margin:0 auto}
+h1{margin:0;font-size:22px;letter-spacing:.2px}
+h1 span{color:var(--gold)}
+.sub{color:var(--mut);font-size:13px;margin-top:2px}
+nav{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;color:var(--mut);padding:10px 16px;font:inherit;font-weight:600;cursor:pointer;border-bottom:3px solid transparent}
+nav button.on{color:var(--txt);border-bottom-color:var(--gold)}
+main{max-width:1280px;margin:0 auto;padding:16px 20px 40px;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(320px,1fr);gap:18px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.card h3{margin:0 0 8px;font-size:15px}
+.hidden{display:none!important}
+svg{width:100%;height:auto;display:block;background:#0f182c;border-radius:10px}
+.axis text{fill:var(--mut);font-size:11px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--mut);margin:8px 2px 0}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+@media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--panel2);border-radius:10px;padding:8px 10px}
+.stat small{color:var(--mut);display:block;font-size:11.5px}
+.stat b{font-size:19px}
+.stat em{font-style:normal;font-size:12px;margin-left:6px}
+.up{color:var(--good)} .dn{color:var(--bad)} .nz{color:var(--mut)}
+.stepper{display:flex;gap:6px;align-items:center;margin:12px 0 6px;flex-wrap:wrap}
+.dot{width:26px;height:26px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;font-size:12px;color:var(--mut)}
+.dot.on{background:var(--gold);color:#222;border-color:var(--gold);font-weight:700}
+.dot.done{background:#2b3b63;color:var(--txt)}
+.steplab{font-size:13px;color:var(--mut);margin-left:6px}
+.story{background:var(--panel2);border-left:4px solid var(--gold);border-radius:8px;padding:10px 14px;min-height:96px}
+.story h4{margin:0 0 4px;font-size:15px}
+.story p{margin:4px 0;font-size:14px}
+.btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font:inherit;font-size:13.5px;cursor:pointer}
+.btn:hover:not(:disabled){border-color:var(--gold)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.pri{background:var(--gold);color:#1d1d1d;border-color:var(--gold);font-weight:700}
+.btn.sm{padding:5px 9px;font-size:12.5px}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tool{text-align:left;display:flex;gap:8px;align-items:flex-start;line-height:1.25}
+.tool .ic{font-size:18px}
+.tool small{display:block;color:var(--mut);font-size:11.5px}
+.chip{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:700;margin-right:4px}
+.chip.fl{background:#14455c;color:#7fd6ff}.chip.fx{background:#4a2a5e;color:#e2b6ff}
+.chip.mob{background:#33405e;color:#cfd9f5}
+.is-t{color:var(--is);font-weight:700}.lm-t{color:var(--lm);font-weight:700}.bp-t{color:var(--bp);font-weight:700}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{background:var(--panel2);color:var(--mut);border:0;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
+.seg button.on{background:var(--gold);color:#1c1c1c;font-weight:700}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.row label{color:var(--mut);font-size:13px;min-width:92px}
+.gauge{position:relative;height:30px;background:var(--panel2);border-radius:8px;margin:8px 0 4px}
+.gauge .band{position:absolute;top:0;bottom:0;background:rgba(74,222,128,.28);border-left:2px solid var(--good);border-right:2px solid var(--good)}
+.gauge .ptr{position:absolute;top:-3px;width:4px;bottom:-3px;background:var(--gold);border-radius:2px;transition:left .6s}
+.gauge span{position:absolute;top:5px;font-size:11px;color:var(--mut)}
+table.cs{width:100%;border-collapse:collapse;font-size:13.5px}
+table.cs th,table.cs td{border:1px solid var(--line);padding:8px 10px;vertical-align:top}
+table.cs th{background:var(--panel2);text-align:left}
+.ok{color:var(--good);font-weight:700}.no{color:var(--bad);font-weight:700}.mid{color:var(--gold);font-weight:700}
+.modal{background:var(--panel2);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin:10px 0}
+.modal h4{margin:0 0 6px}
+.stars{font-size:30px;color:var(--gold);letter-spacing:4px}
+details{margin:6px 0}
+summary{cursor:pointer;font-weight:600}
+.small{font-size:12.5px;color:var(--mut)}
+ul{margin:6px 0 6px 20px;padding:0}
+code{background:#0f182c;padding:1px 6px;border-radius:5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Mundell-Fleming <span>Arena</span></h1>
+  <div class="sub">You are the policy-maker of a small open economy. Move the IS, LM and BP curves, and see why the exchange-rate regime changes everything.</div>
+  <nav id="tabs">
+    <button data-t="missions" class="on">🎯 Missions</button>
+    <button data-t="lab">🧪 Policy Lab</button>
+    <button data-t="cheat">📋 Cheat Sheet</button>
+    <button data-t="how">📘 How the Model Works</button>
+  </nav>
+</header>
+
+<main id="main">
+  <!-- LEFT: graph (shared) -->
+  <section>
+    <div class="card" id="graphCard">
+      <svg id="g" viewBox="0 0 640 440" role="img" aria-label="IS-LM-BP diagram"></svg>
+      <div class="legend">
+        <span><i style="background:var(--is)"></i>IS (goods market)</span>
+        <span><i style="background:var(--lm)"></i>LM (money market)</span>
+        <span><i style="background:var(--bp)"></i>BP (balance of payments)</span>
+        <span><i style="background:#8794b5;height:0;border-top:2px dashed #8794b5"></i>faded dashed = before</span>
+        <span>◯ old equilibrium &nbsp; ● current point</span>
+      </div>
+      <div class="stepper" id="stepper"></div>
+      <div class="story" id="story"><h4>Welcome</h4><p>Pick a policy and watch the curves move.</p></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="bBack">◀ Back</button>
+        <button class="btn pri" id="bNext">Next step ▶</button>
+        <button class="btn" id="bSkip">Skip to result ⏭</button>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+  </section>
+
+  <!-- RIGHT: tab panels -->
+  <aside>
+    <div id="p-missions">
+      <div class="card" id="mBrief"></div>
+      <div class="card" style="margin-top:14px" id="mTools"></div>
+    </div>
+
+    <div id="p-lab" class="hidden">
+      <div class="card">
+        <h3>Set up the economy</h3>
+        <div class="row"><label>Exchange-rate regime</label>
+          <div class="seg" id="segReg"><button data-v="float" class="on">Floating</button><button data-v="fixed">Fixed (peg)</button></div></div>
+        <div class="row"><label>Capital mobility</label>
+          <div class="seg" id="segMob"><button data-v="low">Low</button><button data-v="high">High</button><button data-v="perfect" class="on">Perfect</button></div></div>
+        <div class="row"><label>Quiz me first</label><label style="min-width:0"><input type="checkbox" id="qz"> predict before each action</label></div>
+        <div class="row"><button class="btn" id="bReset">↺ Reset economy</button></div>
+        <p class="small" id="labNote"></p>
+      </div>
+      <div class="card" style="margin-top:14px" id="labTools"></div>
+    </div>
+
+    <div id="p-cheat" class="hidden"></div>
+    <div id="p-how" class="hidden"></div>
+  </aside>
+</main>
+
+<script>
+/* ============================= MODEL ============================= */
+// MODEL START
+const PAR = {c:0.7, m:0.2, b:8, gam:0.3, k:0.5, h:5};
+PAR.inv = 1 - PAR.c + PAR.m;           // 1 - c + m  (inverse of the multiplier)
+const SIG = {low:0.5, high:4, perfect:1000};
+const YSTAR = 100;
+
+function baseState(regime, mob){
+  return {regime, mob, sig:SIG[mob], a0:64, G:20, T:20, M:25, x0:20, rs:5, e:100, res:100};
+}
+function solve3(A, r){            // Gaussian elimination
+  const n=3, M=A.map((row,i)=>[...row, r[i]]);
+  for(let i=0;i<n;i++){
+    let p=i; for(let j=i+1;j<n;j++) if(Math.abs(M[j][i])>Math.abs(M[p][i])) p=j;
+    [M[i],M[p]]=[M[p],M[i]];
+    for(let j=i+1;j<n;j++){ const f=M[j][i]/M[i][i]; for(let k=i;k<=n;k++) M[j][k]-=f*M[i][k]; }
+  }
+  const x=[0,0,0];
+  for(let i=n-1;i>=0;i--){ let s=M[i][n]; for(let j=i+1;j<n;j++) s-=M[i][j]*x[j]; x[i]=s/M[i][i]; }
+  return x;
+}
+function isConst(s){ return s.a0 + s.x0 + s.G - PAR.c*s.T + PAR.gam*(s.e-100); }
+function curves(s){
+  return { Kis: isConst(s), M: s.M, bp0: s.rs + (-s.x0 - PAR.gam*(s.e-100))/s.sig };
+}
+function flows(s, Y, r){
+  const NX = s.x0 + PAR.gam*(s.e-100) - PAR.m*Y;
+  const CF = s.sig*(r - s.rs);
+  return {NX, CF, BoP: NX+CF};
+}
+// full (long-run) equilibrium: floating -> e adjusts ; fixed -> M adjusts
+function equilibrium(s0){
+  const s = {...s0}; const {c,m,b,gam,k,h,inv}=PAR;
+  let Y,r;
+  if(s.regime==='float'){
+    const sol = solve3(
+      [[inv, b, -gam],[k, -h, 0],[-m, s.sig, gam]],
+      [s.a0+s.x0+s.G-c*s.T-100*gam, s.M, s.sig*s.rs - s.x0 + 100*gam]);
+    [Y,r,s.e] = sol;
+  } else {
+    const sol = solve3(
+      [[inv, b, 0],[-m, s.sig, 0],[k, -h, -1]],
+      [s.a0+s.x0+s.G-c*s.T+gam*(s.e-100), s.sig*s.rs - s.x0 - gam*(s.e-100), 0]);
+    [Y,r,s.M] = sol;
+  }
+  s.Y=Y; s.r=r; Object.assign(s, flows(s,Y,r));
+  return s;
+}
+// short-run impact: e and M frozen, only goods + money markets clear
+function impact(s0){
+  const s={...s0}; const {k,h,b,inv}=PAR;
+  const a=inv,  B=b, rhs1=isConst(s);          // inv*Y + b*r = K
+  // LM: k*Y - h*r = M  -> r = (kY-M)/h
+  const Y = (rhs1 + B*s.M/h)/(a + B*k/h);
+  const r = (k*Y - s.M)/h;
+  s.Y=Y; s.r=r; Object.assign(s, flows(s,Y,r));
+  return s;
+}
+// ---- actions ----
+const ACTIONS = {
+  Gup:{kind:'policy',cat:'fiscal',ic:'🏗️',label:'Raise government spending',sub:'G +8',apply:s=>{s.G+=8}, shift:'<b class="is-t">IS shifts right</b>'},
+  Gdn:{kind:'policy',cat:'fiscal',ic:'✂️',label:'Cut government spending',sub:'G −8',apply:s=>{s.G-=8}, shift:'<b class="is-t">IS shifts left</b>'},
+  Tdn:{kind:'policy',cat:'fiscal',ic:'💸',label:'Cut taxes',sub:'T −8',apply:s=>{s.T-=8}, shift:'<b class="is-t">IS shifts right</b>'},
+  Tup:{kind:'policy',cat:'fiscal',ic:'🧾',label:'Raise taxes',sub:'T +8',apply:s=>{s.T+=8}, shift:'<b class="is-t">IS shifts left</b>'},
+  Mup:{kind:'policy',cat:'money',ic:'🖨️',label:'Expand money supply',sub:'central bank buys bonds, M +5',apply:s=>{s.M+=5}, shift:'<b class="lm-t">LM shifts right</b>'},
+  Mdn:{kind:'policy',cat:'money',ic:'🏦',label:'Contract money supply',sub:'central bank sells bonds, M −5',apply:s=>{s.M-=5}, shift:'<b class="lm-t">LM shifts left</b>'},
+  DEV:{kind:'policy',cat:'devalue',ic:'📉',label:'Devalue the peg',sub:'e +10 (fixed regime only)',only:'fixed',apply:s=>{s.e+=10}, shift:'<b class="is-t">IS shifts right</b> and <b class="bp-t">BP shifts down</b> (cheaper exports)'},
+  REV:{kind:'policy',cat:'devalue',ic:'📈',label:'Revalue the peg',sub:'e −10 (fixed regime only)',only:'fixed',apply:s=>{s.e-=10}, shift:'<b class="is-t">IS shifts left</b> and <b class="bp-t">BP shifts up</b> (dearer exports)'},
+  INVup:{kind:'shock',cat:'invest',ic:'😃',label:'Business optimism',sub:'investment +8',apply:s=>{s.a0+=8}, shift:'<b class="is-t">IS shifts right</b>'},
+  INVdn:{kind:'shock',cat:'invest',ic:'😟',label:'Investment slump',sub:'investment −8',apply:s=>{s.a0-=8}, shift:'<b class="is-t">IS shifts left</b>'},
+  Xup:{kind:'shock',cat:'trade',ic:'🚢',label:'Foreign demand boom',sub:'exports +10',apply:s=>{s.x0+=10}, shift:'<b class="is-t">IS shifts right</b> and <b class="bp-t">BP shifts down</b> (trade surplus capacity)'},
+  Xdn:{kind:'shock',cat:'trade',ic:'⚓',label:'Foreign demand slump',sub:'exports −10',apply:s=>{s.x0-=10}, shift:'<b class="is-t">IS shifts left</b> and <b class="bp-t">BP shifts up</b>'},
+  BOOM:{kind:'shock',cat:'invest',ic:'🔥',label:'Global boom',sub:'investment +8 and r* +1',apply:s=>{s.a0+=8;s.rs+=1}, shift:'<b class="is-t">IS shifts right</b> and <b class="bp-t">BP shifts up</b>'},
+  RSup:{kind:'shock',cat:'foreign',ic:'🌍',label:'Foreign interest rate rises',sub:'r* +1',apply:s=>{s.rs+=1}, shift:'<b class="bp-t">BP shifts up</b> (domestic r must rise to keep capital here)'},
+  RSdn:{kind:'shock',cat:'foreign',ic:'🌐',label:'Foreign interest rate falls',sub:'r* −1',apply:s=>{s.rs-=1}, shift:'<b class="bp-t">BP shifts down</b>'}
+};
+// Run an action -> list of 3 frames (before / impact / final) + analysis
+function runAction(s0, id){
+  const A = ACTIONS[id];
+  const before = equilibrium(s0);
+  const s1raw = {...s0}; A.apply(s1raw);
+  const imp = impact(s1raw);               // M,e frozen
+  const fin = equilibrium({...s1raw});
+  // reserves bookkeeping under a peg: reserves change by the money supply adjustment
+  fin.res = s0.regime==='fixed' ? s0.res + (fin.M - imp.M) : s0.res;
+  imp.res = s0.res;
+  return {A, id, before, imp, fin};
+}
+// MODEL END
+</script>
+
+<script>
+/* ============================= GRAPH ============================= */
+const NS='http://www.w3.org/2000/svg';
+const W=640,H=440, ML=58, MR=22, MT=16, MB=46;
+const XR=[50,150], YR=[-1,11];
+const px=Y=>ML+(Y-XR[0])/(XR[1]-XR[0])*(W-ML-MR);
+const py=r=>MT+(YR[1]-r)/(YR[1]-YR[0])*(H-MT-MB);
+const svg=document.getElementById('g');
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);(parent||svg).appendChild(e);return e;}
+let slopeBP = PAR.m/SIG.perfect;
+const G={};
+(function build(){
+  const defs=el('defs',{});
+  const cp=el('clipPath',{id:'clip'},defs); el('rect',{x:ML,y:MT,width:W-ML-MR,height:H-MT-MB},cp);
+  // grid + axes
+  const ax=el('g',{class:'axis'});
+  for(let Y=60;Y<=140;Y+=20){el('line',{x1:px(Y),x2:px(Y),y1:MT,y2:H-MB,stroke:'#1d2a47'},ax);el('text',{x:px(Y),y:H-MB+16,'text-anchor':'middle'},ax).textContent=Y;}
+  for(let r=0;r<=10;r+=2){el('line',{x1:ML,x2:W-MR,y1:py(r),y2:py(r),stroke:'#1d2a47'},ax);el('text',{x:ML-8,y:py(r)+4,'text-anchor':'end'},ax).textContent=r+'%';}
+  el('line',{x1:ML,x2:W-MR,y1:H-MB,y2:H-MB,stroke:'#556'},ax);el('line',{x1:ML,x2:ML,y1:MT,y2:H-MB,stroke:'#556'},ax);
+  el('text',{x:(ML+W-MR)/2,y:H-8,'text-anchor':'middle'},ax).textContent='Output / income  (Y)';
+  const yl=el('text',{x:14,y:(MT+H-MB)/2,'text-anchor':'middle',transform:`rotate(-90 14 ${(MT+H-MB)/2})`},ax);yl.textContent='Interest rate (r)';
+  // target line
+  G.target=el('line',{y1:MT,y2:H-MB,stroke:'#4ade80','stroke-dasharray':'2 5','stroke-width':1.5,opacity:.7});
+  G.targetT=el('text',{y:MT+12,fill:'#4ade80','font-size':11,'text-anchor':'middle'}); G.targetT.textContent='target Y*';
+  G.rsLine=el('line',{x1:ML,x2:W-MR,stroke:'#8794b5','stroke-dasharray':'1 6','stroke-width':1.2,opacity:.8});
+  G.rsT=el('text',{x:W-MR-4,fill:'#8794b5','font-size':11,'text-anchor':'end'}); G.rsT.textContent='world rate r*';
+  const cg=el('g',{'clip-path':'url(#clip)'});
+  const mk=(col,dash,op)=>el('line',{stroke:col,'stroke-width':dash?2:3.6,'stroke-linecap':'round','stroke-dasharray':dash?'7 6':'',opacity:op},cg);
+  G.gIS=mk('#4da3ff',1,.4);G.gLM=mk('#ffa94d',1,.4);G.gBP=mk('#4ade80',1,.4);
+  G.IS=mk('#4da3ff');G.LM=mk('#ffa94d');G.BP=mk('#4ade80');
+  G.lIS=el('text',{fill:'#4da3ff','font-weight':800,'font-size':15});G.lIS.textContent='IS';
+  G.lLM=el('text',{fill:'#ffa94d','font-weight':800,'font-size':15});G.lLM.textContent='LM';
+  G.lBP=el('text',{fill:'#4ade80','font-weight':800,'font-size':15});G.lBP.textContent='BP';
+  G.e0=el('circle',{r:7,fill:'none',stroke:'#cfd9f5','stroke-width':2});
+  G.e0t=el('text',{fill:'#cfd9f5','font-size':12});G.e0t.textContent='E₀';
+  G.ip=el('circle',{r:5,fill:'none',stroke:'#ffd166','stroke-dasharray':'2 2'});
+  G.ipt=el('text',{fill:'#ffd166','font-size':11});G.ipt.textContent='E′';
+  G.pt=el('circle',{r:7,fill:'#ffd166',stroke:'#fff','stroke-width':2});
+  G.ptt=el('text',{fill:'#ffd166','font-size':13,'font-weight':700});
+  G.badge=el('text',{x:ML+10,y:MT+34,fill:'#ffd166','font-size':12,'font-weight':700});
+})();
+// animated params
+let cur=null, anim=null;
+function lineXY(el_, f){ // f(Y)->r, draw across XR
+  el_.setAttribute('x1',px(XR[0]));el_.setAttribute('y1',py(f(XR[0])));
+  el_.setAttribute('x2',px(XR[1]));el_.setAttribute('y2',py(f(XR[1])));
+}
+function clampLabel(Yl, f){ let Y=Yl, r=f(Y); if(r>YR[1]-0.5||r<YR[0]+0.5){ r=Math.min(YR[1]-0.5,Math.max(YR[0]+0.5,r)); } return [px(Y),py(r)]; }
+function draw(p){
+  const {inv,b,k,h,m}=PAR;
+  const IS=(K)=>Y=>(K-inv*Y)/b, LM=(M)=>Y=>(k*Y-M)/h, BP=(bp0)=>Y=>bp0+slopeBP*Y;
+  lineXY(G.IS,IS(p.Kis));lineXY(G.LM,LM(p.M));lineXY(G.BP,BP(p.bp0));
+  for(const [n,f] of [['gIS',IS(p.gKis)],['gLM',LM(p.gM)],['gBP',BP(p.gbp0)]]) lineXY(G[n],f);
+  const og=p.ghost; for(const n of ['gIS','gLM','gBP']) G[n].setAttribute('opacity',.42*og);
+  // labels
+  const lab=(t,Y,f,dx,dy)=>{const [x,y]=clampLabel(Y,f);t.setAttribute('x',x+dx);t.setAttribute('y',y+dy);};
+  lab(G.lIS,66,IS(p.Kis),-2,-8);
+  lab(G.lLM,138,LM(p.M),-2,-8);
+  lab(G.lBP,142,BP(p.bp0),0,16);
+  G.target.setAttribute('x1',px(YSTAR));G.target.setAttribute('x2',px(YSTAR));G.targetT.setAttribute('x',px(YSTAR));
+  G.target.setAttribute('opacity',window.showTarget?0.8:0);G.targetT.setAttribute('opacity',window.showTarget?1:0);
+  G.rsLine.setAttribute('y1',py(p.rs));G.rsLine.setAttribute('y2',py(p.rs));G.rsT.setAttribute('y',py(p.rs)-5);
+  const cl=(Y,r)=>[px(Math.min(XR[1]-1,Math.max(XR[0]+1,Y))), py(Math.min(YR[1]-.3,Math.max(YR[0]+.3,r)))];
+  let [x,y]=cl(p.Y,p.r); G.pt.setAttribute('cx',x);G.pt.setAttribute('cy',y);G.ptt.setAttribute('x',x+11);G.ptt.setAttribute('y',y-9);
+  [x,y]=cl(p.e0Y,p.e0r); G.e0.setAttribute('cx',x);G.e0.setAttribute('cy',y);G.e0t.setAttribute('x',x-26);G.e0t.setAttribute('y',y+4);
+  G.e0.setAttribute('opacity',p.ghost);G.e0t.setAttribute('opacity',p.ghost);
+  [x,y]=cl(p.ipY,p.ipr); G.ip.setAttribute('cx',x);G.ip.setAttribute('cy',y);G.ipt.setAttribute('x',x+8);G.ipt.setAttribute('y',y+14);
+  G.ip.setAttribute('opacity',p.showImp);G.ipt.setAttribute('opacity',p.showImp);
+  G.ptt.textContent=p.ptLabel||'';
+  G.badge.textContent=p.badge||'';
+}
+const NUM=['Kis','M','bp0','Y','r','gKis','gM','gbp0','e0Y','e0r','ipY','ipr','ghost','showImp','rs'];
+function setParams(t,ms){
+  if(anim)cancelAnimationFrame(anim);
+  if(!cur||!ms){cur={...t};draw(cur);return;}
+  const from={...cur},t0=performance.now();
+  const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+  const step=now=>{
+    const u=Math.min(1,(now-t0)/ms),e=ease(u);
+    const o={...t};for(const n of NUM)o[n]=from[n]+(t[n]-from[n])*e;
+    cur=o;draw(o);if(u<1)anim=requestAnimationFrame(step);
+  };
+  anim=requestAnimationFrame(step);
+}
+function paramsFor(frames, i){
+  const f=[frames.before,frames.imp,frames.fin][i];
+  const cb=curves(frames.before);
+  const c = i===0?cb : i===1?curves({...frames.imp}):curves(frames.fin);
+  return { ...c, Y:f.Y, r:f.r, rs:f.rs,
+    gKis:cb.Kis,gM:cb.M,gbp0:cb.bp0, ghost:i>0?1:0,
+    e0Y:frames.before.Y,e0r:frames.before.r,
+    ipY:frames.imp.Y,ipr:frames.imp.r, showImp:i===2?0.9:0,
+    ptLabel:['E₀','E′ (initial impact)','E₁ (new equilibrium)'][i], badge:'' };
+}
+</script>
+
+<script>
+/* ============================= NARRATION ============================= */
+const f1=x=>(Math.round(x*10)/10).toFixed(1);
+const sgn=x=>(x>=0?'+':'−')+f1(Math.abs(x));
+function bopWords(s){
+  const b=s.BoP;
+  if(Math.abs(b)<0.3) return {t:'is roughly balanced',kind:0};
+  return b>0 ? {t:`shows a <b class="up">surplus of ${f1(b)}</b>`,kind:1} : {t:`shows a <b class="dn">deficit of ${f1(-b)}</b>`,kind:-1};
+}
+function narrate(R, i){
+  const {A,before:b,imp,fin}=R;
+  const fl=b.regime==='float';
+  const mobTxt={low:'low',high:'high',perfect:'perfect'}[b.mob];
+  if(i===0){
+    return {h:`Starting point: E₀`,
+      p:[`The economy sits at <b>Y = ${f1(b.Y)}</b>, <b>r = ${f1(b.r)}%</b>, <b>e = ${f1(b.e)}</b>. All three curves cross here: goods market (IS), money market (LM) and balance of payments (BP) are all in equilibrium.`,
+         `Regime: <b>${fl?'floating':'fixed'}</b> exchange rate, <b>${mobTxt}</b> capital mobility.`+
+         (b.mob==='perfect'?` With perfect capital mobility the BP line is <b>horizontal</b> at the world rate r*.`:b.mob==='high'?` With high mobility the BP line is flatter than LM.`:` With low mobility the BP line is steeper than LM.`)]};
+  }
+  if(i===1){
+    const bw=bopWords(imp);
+    const dy=imp.Y-b.Y;
+    const whyBoP = imp.NX+imp.CF>=0 ? '' : '';
+    return {h:`Step 1 · ${A.kind==='shock'?'The shock hits':'You act'}: ${A.label} (${A.sub})`,
+      p:[`${A.shift}. If the exchange rate and money supply could not move yet, the economy would jump to <b>E′: Y = ${f1(imp.Y)}</b> (${sgn(dy)}), <b>r = ${f1(imp.r)}%</b> (${sgn(imp.r-b.r)}).`,
+         `But E′ is not on the BP curve: the balance of payments ${bw.t}. Trade balance ${sgn(imp.NX)}, capital flows ${sgn(imp.CF)} (r ${imp.r>imp.rs?'above':imp.r<imp.rs?'below':'equal to'} the world rate ${f1(imp.rs)}%).`+
+         (Math.abs(imp.BoP)<0.3?` Nothing pressures the currency, so there is no second-round adjustment.`:` That imbalance is what the ${fl?'foreign-exchange market':'central bank'} must now deal with.`)]};
+  }
+  // i===2
+  const bw=bopWords(imp), dYf=fin.Y-b.Y, dYi=imp.Y-b.Y;
+  let adj;
+  if(bw.kind===0) adj=`The balance of payments was already balanced, so nothing else moves.`;
+  else if(fl){
+    adj = bw.kind>0
+     ? `Surplus → excess demand for our currency → the exchange rate <b>appreciates</b> (e: ${f1(imp.e)} → ${f1(fin.e)}). Dearer exports hurt net exports, so <b class="is-t">IS shifts back left</b> and <b class="bp-t">BP shifts up</b> until BP = 0 again.`
+     : `Deficit → excess supply of our currency → the exchange rate <b>depreciates</b> (e: ${f1(imp.e)} → ${f1(fin.e)}). Cheaper exports raise net exports, so <b class="is-t">IS shifts further right</b> and <b class="bp-t">BP shifts down</b> until BP = 0 again.`;
+  } else {
+    adj = bw.kind>0
+     ? `Surplus → the central bank must <b>buy foreign currency</b> to hold the peg. Reserves rise (${f1(imp.res)} → ${f1(fin.res)}) and the money supply expands (M: ${f1(imp.M)} → ${f1(fin.M)}), so <b class="lm-t">LM shifts right</b> until BP = 0.`
+     : `Deficit → the central bank must <b>sell foreign currency</b> to hold the peg. Reserves fall (${f1(imp.res)} → ${f1(fin.res)}) and the money supply shrinks (M: ${f1(imp.M)} → ${f1(fin.M)}), so <b class="lm-t">LM shifts left</b> until BP = 0.`;
+  }
+  const leak = Math.abs(dYi)<0.3 ? null : fin.Y!==undefined ? (dYf/dYi) : null;
+  const verdict = leak===null ? '' :
+    (leak>1.1?`<b class="ok">Amplified</b>: ${Math.round(leak*100)}% of the initial effect, the adjustment reinforced it.`:
+     leak>0.85?`<b class="ok">Fully effective</b>: the final change in Y matches the initial impact.`:
+     leak>0.15?`<b class="mid">Partly offset</b>: only ${Math.round(leak*100)}% of the initial effect on Y survives.`:
+     `<b class="no">Neutralised</b>: the adjustment wiped out ${Math.round((1-Math.max(0,leak))*100)}% of the effect on Y.`);
+  return {h:`Step 2 · ${fl?'The exchange rate adjusts':'The central bank defends the peg'} → new equilibrium E₁`,
+    p:[adj,
+       `<b>Result:</b> Y = ${f1(fin.Y)} (${sgn(dYf)} overall), r = ${f1(fin.r)}%, e = ${f1(fin.e)}, M = ${f1(fin.M)}. ${verdict}`,
+       `<span class="small">💡 ${lesson(A,b)}</span>`]};
+}
+function lesson(A,s){
+  const fl=s.regime==='float', pm=s.mob==='perfect', lowm=s.mob==='low';
+  const nuance = pm?'With perfect capital mobility this is the extreme textbook case.':lowm?'With low capital mobility the textbook result is weaker, because capital flows respond only a little to r.':'With high (not perfect) mobility the textbook result mostly holds but not completely.';
+  const L={
+   float:{
+    fiscal:'Floating: a fiscal change moves r, which pulls capital in or out, so the currency moves and net exports <b>crowd out</b> part of the effect. Fiscal policy is weak. ',
+    money:'Floating: monetary policy works through r and through the exchange rate (lower r → outflow → depreciation → higher exports), so it is <b>powerful</b>. ',
+    trade:'Floating: a change in exports is fully offset by an exchange-rate move in the opposite direction, so output does not change at all; only e does. ',
+    foreign:'Floating: a foreign rate rise pulls capital out, so the currency depreciates and exports boom: output rises. ',
+    invest:'Floating: an investment shock moves r and e; the exchange rate offsets much of it through net exports. '},
+   fixed:{
+    fiscal:'Fixed: fiscal policy is <b>powerful</b>. The central bank must supply the extra money the higher r would otherwise drain, so there is no crowding out. ',
+    money:'Fixed: monetary policy is <b>impotent</b>. Any money-supply change is undone by the foreign-exchange intervention needed to hold the peg (the “impossible trinity”). ',
+    trade:'Fixed: a trade shock is amplified because reserves flow in/out and the money supply follows. ',
+    foreign:'Fixed: the country imports foreign monetary policy: higher r* drains reserves and money, and output falls. ',
+    invest:'Fixed: an investment shock is amplified or damped by money-supply changes needed to hold the peg. ',
+    devalue:'Fixed: changing the peg shifts IS and BP at once (like a one-off exchange-rate move) and is the only monetary-type lever a pegger keeps. '}
+  };
+  return (L[s.regime][A.cat]||'')+nuance;
+}
+</script>
+
+<script>
+/* ============================= GAME STATE & CONTROLS ============================= */
+let TAB='missions';
+let LAB={regime:'float',mob:'perfect',state:null,quiz:false};
+let R=null, step=0;            // current run + frame index
+let PRED=null;                 // pending prediction
+const $=id=>document.getElementById(id);
+function safeGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function safeSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+function showFrame(i,ms=900){
+  step=i; const frames=R;
+  setParams(paramsFor(frames,i),ms);
+  const n=narrate(R,i);
+  $('story').innerHTML=`<h4>${n.h}</h4>`+n.p.map(t=>`<p>${t}</p>`).join('');
+  document.querySelectorAll('#stepper .dot').forEach((d,j)=>{d.className='dot'+(j===i?' on':j<i?' done':'')});
+  $('steplab').textContent=['Before','Impact of the shock / policy','Adjustment & new equilibrium'][i];
+  $('bBack').disabled=i===0; $('bNext').disabled=i===2; $('bSkip').disabled=i===2;
+  renderStats(i);
+  if(window.onFrame) window.onFrame(i);
+}
+function renderStats(i){
+  const f=[R.before,R.imp,R.fin][i], b=R.before, fl=b.regime==='float';
+  const cell=(lab,v,base,inv)=>{const d=v-base;const c=Math.abs(d)<0.05?'nz':(d>0?'up':'dn');return `<div class="stat"><small>${lab}</small><b>${f1(v)}</b>${i>0?`<em class="${c}">${Math.abs(d)<0.05?'–':sgn(d)}</em>`:''}</div>`;};
+  const bop = f.BoP;
+  $('stats').innerHTML =
+    cell('Output Y',f.Y,b.Y)+cell('Interest rate r (%)',f.r,b.r)+
+    cell('Exchange rate e (↑ = weaker)',f.e,b.e)+cell('Money supply M',f.M,b.M)+
+    cell('Net exports',f.NX,b.NX)+cell('Capital inflow',f.CF,b.CF)+
+    `<div class="stat"><small>Balance of payments</small><b>${Math.abs(bop)<0.05?'0.0':f1(bop)}</b><em class="${Math.abs(bop)<0.3?'up':'dn'}">${Math.abs(bop)<0.3?'balanced ✔':bop>0?'surplus':'deficit'}</em></div>`+
+    `<div class="stat"><small>${fl?'FX reserves (not used)':'FX reserves'}</small><b>${f1(f.res)}</b>${i>0&&!fl?`<em class="${Math.abs(f.res-b.res)<.05?'nz':f.res>b.res?'up':'dn'}">${Math.abs(f.res-b.res)<.05?'–':sgn(f.res-b.res)}</em>`:''}</div>`;
+}
+function initStepper(){
+  $('stepper').innerHTML='<div class="dot">0</div><div class="dot">1</div><div class="dot">2</div><span class="steplab" id="steplab"></span>';
+}
+$('bBack').onclick=()=>showFrame(Math.max(0,step-1));
+$('bNext').onclick=()=>showFrame(Math.min(2,step+1));
+$('bSkip').onclick=()=>showFrame(2);
+
+// show a static state (no action): frames with identical before/imp/fin
+function showIdle(s){
+  const e=equilibrium(s);
+  R={A:{label:'',sub:'',shift:''},before:e,imp:e,fin:e};
+  const p=paramsFor(R,0); setParams(p,0);
+  step=0; renderStats(0);
+  document.querySelectorAll('#stepper .dot').forEach((d,j)=>d.className='dot'+(j===0?' on':''));
+  $('steplab').textContent='Idle — pick a policy';
+  $('bBack').disabled=$('bNext').disabled=$('bSkip').disabled=true;
+  const n=narrate(R,0);
+  $('story').innerHTML=`<h4>${n.h}</h4>`+n.p.map(t=>`<p>${t}</p>`).join('');
+  return e;
+}
+function setSlope(mob){slopeBP=PAR.m/SIG[mob];}
+
+/* ---------- prediction helper ---------- */
+function classify(d,thr=0.5){return Math.abs(d)<thr?'same':(d>0?'up':'down');}
+function askPredict(s,id,done){
+  const sim=runAction(s,id), A=ACTIONS[id], fl=s.regime==='float';
+  const truth={Y:classify(sim.fin.Y-sim.before.Y), Z:fl?classify(sim.fin.e-sim.before.e):classify(sim.fin.res-sim.before.res)};
+  PRED={Y:null,Z:null};
+  const box=$('predBox'); box.classList.remove('hidden');
+  const q2=fl?'What happens to the exchange rate e? (↑ = currency weakens / depreciates)':'What happens to the central bank’s foreign-exchange reserves?';
+  const opts2=fl?[['up','e rises (depreciation)'],['same','No change'],['down','e falls (appreciation)']]:[['up','Reserves rise'],['same','No change'],['down','Reserves fall']];
+  box.innerHTML=`<h4>🔮 Predict first: ${A.label} (${A.sub})</h4>
+   <p class="small">Think about which curve shifts and what the ${fl?'currency market':'peg'} forces to happen. Final outcome after all adjustment:</p>
+   <p><b>1. Output Y</b></p><div class="row" id="q1">${[['up','Y rises'],['same','No change'],['down','Y falls']].map(o=>`<button class="btn sm" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>
+   <p><b>2. ${q2}</b></p><div class="row" id="q2">${opts2.map(o=>`<button class="btn sm" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>
+   <div class="row"><button class="btn sm" id="pCancel">Cancel</button></div>`;
+  const pick=(qid,key)=>{document.querySelectorAll('#'+qid+' button').forEach(b=>b.onclick=()=>{
+      PRED[key]=b.dataset.v; document.querySelectorAll('#'+qid+' button').forEach(x=>x.classList.toggle('pri',x===b));
+      if(PRED.Y&&PRED.Z){
+        const pts=(PRED.Y===truth.Y?10:0)+(PRED.Z===truth.Z?10:0);
+        const msg=`${PRED.Y===truth.Y?'✅':'❌'} Y: you said <b>${PRED.Y}</b>, answer <b>${truth.Y}</b> · ${PRED.Z===truth.Z?'✅':'❌'} ${fl?'e':'reserves'}: you said <b>${PRED.Z}</b>, answer <b>${truth.Z}</b> (+${pts} pts)`;
+        box.classList.add('hidden'); done(pts,msg);
+      }});};
+  pick('q1','Y');pick('q2','Z');
+  $('pCancel').onclick=()=>{box.classList.add('hidden');done(null);};
+}
+
+/* ============================= POLICY LAB ============================= */
+function labTools(){
+  const fixed=LAB.regime==='fixed';
+  const btn=(id)=>{const A=ACTIONS[id];const dis=A.only&&A.only!==LAB.regime;
+    return `<button class="btn tool" data-a="${id}" ${dis?'disabled title="Only possible under a fixed exchange rate"':''}><span class="ic">${A.ic}</span><span>${A.label}<small>${A.sub}</small></span></button>`;};
+  $('labTools').innerHTML=`<h3>🛠️ Your policy tools</h3><div class="tools">${['Gup','Gdn','Tdn','Tup','Mup','Mdn','DEV','REV'].map(btn).join('')}</div>
+   <h3 style="margin-top:14px">🌪️ Shocks from the world</h3><div class="tools">${['INVup','INVdn','Xup','Xdn','RSup','RSdn'].map(btn).join('')}</div>`;
+  document.querySelectorAll('#labTools button').forEach(b=>b.onclick=()=>labDo(b.dataset.a));
+  $('labNote').innerHTML=fixed?
+   `<b>Fixed regime:</b> the central bank defends the peg e = ${f1(LAB.state.e)}; the money supply M is <i>endogenous</i> (it moves with the balance of payments).`:
+   `<b>Floating regime:</b> the central bank controls M; the exchange rate e adjusts to clear the balance of payments.`;
+}
+function labReset(){
+  setSlope(LAB.mob);
+  LAB.state=baseState(LAB.regime,LAB.mob);
+  const e=showIdle(LAB.state); LAB.state=e;
+  labTools();
+  window.showTarget=false; draw(cur);
+}
+function labDo(id){
+  const run=()=>{R=runAction(LAB.state,id);LAB.state={...R.fin};showFrame(1);};
+  if(LAB.quiz) askPredict(LAB.state,id,(pts,msg)=>{ if(pts===null)return; run(); $('story').insertAdjacentHTML('afterbegin',`<p>${msg}</p>`); });
+  else run();
+}
+document.querySelectorAll('#segReg button').forEach(b=>b.onclick=()=>{LAB.regime=b.dataset.v;document.querySelectorAll('#segReg button').forEach(x=>x.classList.toggle('on',x===b));labReset();});
+document.querySelectorAll('#segMob button').forEach(b=>b.onclick=()=>{LAB.mob=b.dataset.v;document.querySelectorAll('#segMob button').forEach(x=>x.classList.toggle('on',x===b));labReset();});
+$('qz').onchange=e=>LAB.quiz=e.target.checked;
+$('bReset').onclick=labReset;
+</script>
+
+<script>
+/* ============================= MISSIONS ============================= */
+const BAND=3;
+const MISSIONS=[
+ {t:'Mission 1 · The Hot Money Boom',regime:'float',mob:'perfect',shock:'RSup',
+  story:'Foreign central banks raised interest rates. Capital is leaving, your currency is sliding, exports are booming and the economy is overheating above full employment (Y* = 100).',
+  hint:'Floating + perfect mobility: the LM curve alone pins down output. Which policy moves LM?'},
+ {t:'Mission 2 · Pegged Exporter in Trouble',regime:'fixed',mob:'perfect',shock:'Xdn',
+  story:'Your currency is pegged to the dollar. A recession abroad crushes your exports and output collapses. You cannot print money to fix it. Combine two moves to get back to Y* = 100.',
+  hint:'Monetary policy is useless on a peg. Fiscal policy is strong, and the peg itself can be changed. Try one of each.'},
+ {t:'Mission 3 · Capital Controls, Floating',regime:'float',mob:'low',shock:'INVdn',
+  story:'Business confidence collapses and investment falls. Your capital controls keep capital flows small, so BP is steep. Restore Y* = 100.',
+  hint:'With low capital mobility both fiscal and monetary policy work on a float. Compare with Mission 1: why is fiscal policy no longer neutralised?'},
+ {t:'Mission 4 · Imported Tightening',regime:'fixed',mob:'perfect',shock:'RSup',
+  story:'Foreign rates rise, but you are on a peg. Reserves drain, the money supply shrinks and output falls. You cannot cut r. What can you do?',
+  hint:'Remember the impossible trinity. Monetary expansion will be reversed by the intervention that defends the peg. Fiscal policy is the lever.'},
+ {t:'Mission 5 · Overheating on a Peg',regime:'fixed',mob:'high',shock:'INVup',
+  story:'An investment boom pushes output above full employment while you defend a peg. Cool it down to Y* = 100. Decide whether to try the central bank, the budget, or both.',
+  hint:'Try a monetary contraction and watch reserves: does it stick? Then try a fiscal tightening.'},
+ {t:'Mission 6 · Final Boss: Global Boom',regime:'float',mob:'high',shock:'BOOM',
+  story:'A global boom raises both investment and foreign interest rates. You float with high capital mobility, and the economy overheats. Which tool is the most efficient?',
+  hint:'On a float, the central bank is the strong player: LM moves output almost one-for-one. But also check what fiscal tightening achieves.'}
+];
+let MS=null;
+function bestScores(){try{return JSON.parse(safeGet('mfBest')||'{}')}catch(e){return {}}}
+function startMission(i){
+  window.showTarget=true;
+  MS={i,moves:2,pred:0,predMax:0,done:false,log:[]};
+  const m=MISSIONS[i];
+  setSlope(m.mob);
+  const s=baseState(m.regime,m.mob);
+  MS.state=equilibrium(s);
+  // fire shock using the same animation machinery
+  R=runAction(MS.state,m.shock); MS.state={...R.fin};
+  MS.gap0=R.fin.Y-YSTAR;
+  window.onFrame=null; showFrame(1,700);
+  renderMission();
+}
+function renderMission(){
+  const m=MISSIONS[MS.i],fl=m.regime==='float',s=MS.state;
+  const best=bestScores();
+  const gaugePos=v=>Math.max(0,Math.min(100,(v-60)/(140-60)*100));
+  $('mBrief').innerHTML=`
+   <div class="row" style="margin:0 0 6px;justify-content:space-between"><h3 style="margin:0">${m.t}</h3>
+   <div><select id="mSel" class="btn sm">${MISSIONS.map((x,j)=>`<option value="${j}" ${j===MS.i?'selected':''}>#${j+1}${best[j]!=null?' ★'+best[j]:''}</option>`).join('')}</select></div></div>
+   <div><span class="chip ${fl?'fl':'fx'}">${fl?'FLOATING':'FIXED PEG'}</span><span class="chip mob">${{low:'LOW',high:'HIGH',perfect:'PERFECT'}[m.mob]} capital mobility</span></div>
+   <p style="margin:8px 0">${m.story}</p>
+   <div class="small">Goal: bring output Y within <b>±${BAND}</b> of the target <b>Y* = 100</b>. You have <b id="movesLeft">${MS.moves}</b> move(s).</div>
+   <div class="gauge"><div class="band" style="left:${gaugePos(YSTAR-BAND)}%;width:${gaugePos(YSTAR+BAND)-gaugePos(YSTAR-BAND)}%"></div><div class="ptr" style="left:${gaugePos(s.Y)}%"></div><span style="left:6px">60</span><span style="left:46%">100</span><span style="right:6px">140</span></div>
+   <div class="small">Current Y = <b>${f1(s.Y)}</b> (${Math.abs(s.Y-YSTAR)<=BAND?'<span class="ok">on target ✔</span>':s.Y>YSTAR?'<span class="dn">overheating</span>':'<span class="dn">recession</span>'})</div>
+   <details><summary>💡 Hint</summary><p class="small">${m.hint}</p></details>
+   <div id="predBox" class="modal hidden"></div><div id="mMsg"></div>`;
+  $('mSel').onchange=e=>startMission(+e.target.value);
+  $('mTools').innerHTML=`<h3>Your policy tools</h3><div class="tools">${['Gup','Gdn','Tdn','Tup','Mup','Mdn','DEV','REV'].map(id=>{
+    const A=ACTIONS[id],dis=(A.only&&A.only!==m.regime)||MS.moves<=0||MS.done;
+    return `<button class="btn tool" data-a="${id}" ${dis?'disabled':''} ${A.only&&A.only!==m.regime?'title="Only under a fixed exchange rate"':''}><span class="ic">${A.ic}</span><span>${A.label}<small>${A.sub}</small></span></button>`;}).join('')}</div>
+   <div class="row" style="margin-top:12px"><button class="btn pri" id="mFinish" ${MS.done?'disabled':''}>🏁 Finish mission &amp; score</button><button class="btn" id="mRetry">↺ Retry</button></div>
+   <div id="mRes"></div>`;
+  document.querySelectorAll('#mTools .tool').forEach(b=>b.onclick=()=>missionMove(b.dataset.a));
+  $('mFinish').onclick=finishMission; $('mRetry').onclick=()=>startMission(MS.i);
+}
+function missionMove(id){
+  if(MS.moves<=0||MS.done)return;
+  askPredict(MS.state,id,(pts,msg)=>{
+    if(pts===null)return;
+    MS.pred+=pts; MS.predMax+=20; MS.moves--;
+    R=runAction(MS.state,id); MS.state={...R.fin};
+    showFrame(1,800);
+    $('story').insertAdjacentHTML('afterbegin',`<p>${msg}</p>`);
+    renderMission(); $('mMsg').innerHTML=`<div class="small">${msg}</div>`;
+    if(MS.moves<=0) $('mMsg').innerHTML+=`<p class="small">No moves left, press <b>Finish mission</b> after reading the explanation.</p>`;
+  });
+}
+function finishMission(){
+  MS.done=true;
+  const m=MISSIONS[MS.i], gap=Math.abs(MS.state.Y-YSTAR), g0=Math.abs(MS.gap0);
+  const closeness=Math.max(0,1-gap/g0);
+  const acc=Math.round(closeness*50)+(gap<=BAND?20:0);
+  const predScore=MS.predMax? Math.round(MS.pred/MS.predMax*30):0;
+  const total=Math.min(100,acc+predScore + (MS.predMax===0? 0:0));
+  const stars=total>=85?3:total>=60?2:total>=30?1:0;
+  const best=bestScores(); if(best[MS.i]==null||total>best[MS.i]){best[MS.i]=total;safeSet('mfBest',JSON.stringify(best));}
+  const win=gap<=BAND;
+  $('mRes').innerHTML=`<div class="modal"><h4>${win?'🎉 Mission accomplished!':'📉 Not quite there'}</h4>
+   <div class="stars">${'★'.repeat(stars)}<span style="opacity:.25">${'★'.repeat(3-stars)}</span></div>
+   <p>Final Y = <b>${f1(MS.state.Y)}</b> (started at ${f1(YSTAR+MS.gap0)}). Score <b>${total}/100</b>: accuracy ${acc}/70 + predictions ${predScore}/30.</p>
+   <p class="small">${MS.predMax===0?'You made no moves, so there were no predictions to score. ':''}${win?'You hit the target band. Can you do it in fewer moves or with a better prediction record?':'Check the hint, then retry. Read each step-2 explanation to see who undid your policy.'}</p>
+   <div class="row">${MS.i<MISSIONS.length-1?`<button class="btn pri" id="mNext">Next mission ▶</button>`:'<b>🏆 You completed all missions!</b>'}<button class="btn" id="mRetry2">↺ Retry</button></div></div>`;
+  if($('mNext'))$('mNext').onclick=()=>startMission(MS.i+1);
+  $('mRetry2').onclick=()=>startMission(MS.i);
+  document.querySelectorAll('#mTools .tool').forEach(b=>b.disabled=true); $('mFinish').disabled=true;
+}
+</script>
+
+<script>
+/* ============================= CHEAT SHEET & HOW IT WORKS ============================= */
+function buildCheat(){
+  const rows=[
+   ['Fiscal expansion (G↑ or T↓)','Gup','no','Ineffective: appreciation crowds out net exports one-for-one','ok','Very effective: central bank accommodates, no crowding out'],
+   ['Monetary expansion (M↑)','Mup','ok','Very effective: lower r → depreciation → exports ↑','no','Ineffective: reserves drain until M is back at its old level'],
+   ['Export boom / trade protection (x₀↑)','Xup','no','Y unchanged, the currency appreciates and offsets it fully','ok','Y rises: reserves flow in, M expands'],
+   ['Foreign interest rate rises (r*↑)','RSup','ok','Y rises: depreciation boosts net exports','no','Y falls: reserves drain, M shrinks'],
+   ['Devaluation (e↑)','DEV','—','Not applicable, e is market-determined','ok','Y rises: IS and BP shift (cheaper exports)']
+  ];
+  const t=(c,txt)=>`<td><span class="${c}">${txt.split(':')[0]}</span>${txt.includes(':')?':'+txt.split(':').slice(1).join(':'):''}</td>`;
+  $('p-cheat').innerHTML=`<div class="card"><h3>📋 Who wins? Fixed vs Floating (perfect capital mobility)</h3>
+   <table class="cs"><tr><th>Shock / policy</th><th>Floating</th><th>Fixed</th><th></th></tr>
+   ${rows.map(r=>`<tr><td><b>${r[0]}</b></td>${t(r[2],r[3])}${t(r[4],r[5])}<td>${r[1]==='DEV'?`<button class="btn sm" data-try="${r[1]}" data-reg="fixed">Try fixed ▶</button>`:`<button class="btn sm" data-try="${r[1]}" data-reg="float">Float ▶</button><br><button class="btn sm" style="margin-top:4px" data-try="${r[1]}" data-reg="fixed">Fixed ▶</button>`}</td></tr>`).join('')}
+   </table>
+   <p class="small">Buttons open the Policy Lab, reset it to that regime with perfect mobility, and run the experiment so you can watch the curves.</p></div>
+   <div class="card" style="margin-top:14px"><h3>🔺 The impossible trinity</h3>
+   <p>A country can only have <b>two</b> of: (1) a fixed exchange rate, (2) free capital movement, (3) independent monetary policy. A peg with open capital markets means giving up monetary independence (Missions 2 and 4). A floating rate keeps monetary policy but lets the currency swing.</p></div>
+   <div class="card" style="margin-top:14px"><h3>📏 What changes when capital is <i>less</i> mobile?</h3>
+   <ul><li><b>Floating:</b> fiscal policy regains some power (smaller exchange-rate offset), and monetary policy is still effective.</li>
+   <li><b>Fixed:</b> monetary policy regains a little power because reserve flows are slower, but the peg still constrains it.</li>
+   <li>At zero mobility the model collapses to the closed-economy IS-LM plus a trade-balance constraint on e (or reserves).</li></ul></div>`;
+  document.querySelectorAll('[data-try]').forEach(b=>b.onclick=()=>{
+    LAB.regime=b.dataset.reg;LAB.mob='perfect';
+    document.querySelectorAll('#segReg button').forEach(x=>x.classList.toggle('on',x.dataset.v===LAB.regime));
+    document.querySelectorAll('#segMob button').forEach(x=>x.classList.toggle('on',x.dataset.v==='perfect'));
+    switchTab('lab'); labReset(); labDo(b.dataset.try);
+  });
+}
+function buildHow(){
+  $('p-how').innerHTML=`<div class="card"><h3>📘 The model in one minute</h3>
+  <p>The Mundell-Fleming model is IS-LM for a <b>small open economy</b> (it cannot affect world interest rates) with prices fixed. It adds a third curve.</p>
+  <ul>
+   <li><span class="is-t">IS</span>: goods-market equilibrium. <code>Y = C + I + G + NX</code>. Slopes down: higher r → less investment. Shifts with G, taxes, investment, and net exports (which depend on e and Y).</li>
+   <li><span class="lm-t">LM</span>: money-market equilibrium. <code>M = kY − h·r</code>. Slopes up. Shifts with the money supply M.</li>
+   <li><span class="bp-t">BP</span>: balance of payments, <code>NX + σ(r − r*) = 0</code>. Slope <code>m/σ</code>: the more mobile capital (σ), the flatter it gets; perfect mobility → horizontal at r*. Shifts down when net exports rise (e↑ or x₀↑), up when r* rises.</li>
+  </ul>
+  <h3 style="margin-top:12px">Two regimes, two adjustment mechanisms</h3>
+  <ul>
+   <li><b>Floating:</b> M is set by the central bank; the exchange rate e adjusts until BP = 0. A change in e shifts <b>IS and BP</b>.</li>
+   <li><b>Fixed:</b> e is pegged; the central bank buys/sells foreign currency to defend it, so M adjusts until BP = 0. That moves <b>LM</b>.</li>
+  </ul>
+  <h3 style="margin-top:12px">How to play</h3>
+  <ul><li><b>Missions:</b> a shock hits. Choose a policy, <i>predict</i> what happens to Y and to e (or reserves), then see the curves move. Score points for hitting Y* = 100 and for correct predictions.</li>
+  <li><b>Policy Lab:</b> free sandbox. Switch regime and capital mobility, fire any policy or shock, and step through: initial impact → adjustment.</li>
+  <li>Dashed faded curves show where each curve was before; ◯ is the old equilibrium.</li></ul>
+  <p class="small">Calibration (units are illustrative): c = 0.7, m = 0.2, b = 8, γ = 0.3, k = 0.5, h = 5. Baseline: Y = 100, r = 5%, e = 100, M = 25. The price level is fixed.</p></div>`;
+}
+
+/* ============================= TABS ============================= */
+function switchTab(t){
+  TAB=t;
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  for(const x of ['missions','lab','cheat','how']) $('p-'+x).classList.toggle('hidden',x!==t);
+  $('graphCard').parentElement.classList.toggle('hidden',t==='how'||t==='cheat'?false:false);
+  if(t==='missions'){ if(!MS)startMission(0); else {setSlope(MISSIONS[MS.i].mob);window.showTarget=true;R=runAction(baseStateOf(MS),'Gup');showIdleMission();} }
+  if(t==='lab'){ window.onFrame=null; if(!LAB.state)labReset(); else {setSlope(LAB.mob);window.showTarget=false;showIdle(LAB.state);} }
+}
+function baseStateOf(ms){return ms.state;}
+function showIdleMission(){ // return to mission with current state shown idle
+  const e=showIdle(MS.state); window.showTarget=true; draw(cur);
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>switchTab(b.dataset.t));
+initStepper(); buildCheat(); buildHow();
+LAB.state=null; startMission(0);
+</script>
+</body>
+</html>
